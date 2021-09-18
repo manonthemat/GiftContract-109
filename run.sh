@@ -24,3 +24,8 @@ sleep 4
 curl -H "Content-Type: application/json" -X POST -d "false" http://localhost:9080/api/contract/instance/$W3_IID/endpoint/grab
 sleep 4
 curl -H "Content-Type: application/json" -X POST -d "true" http://localhost:9080/api/contract/instance/$W4_IID/endpoint/grab
+
+echo $W1
+echo $W2
+echo $W3
+echo $W4
