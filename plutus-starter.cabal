@@ -54,7 +54,9 @@ library
       plutus-tx-plugin,
       plutus-tx,
       plutus-ledger,
-      text
+      plutus-ledger-api,
+      text,
+      lens
     hs-source-dirs: src examples/src
 
 test-suite plutus-example-projects-test
@@ -92,4 +94,7 @@ executable plutus-starter-pab
     freer-simple -any,
     prettyprinter -any,
     freer-extras -any,
-    plutus-ledger -any
+    plutus-ledger -any,
+    plutus-ledger-api -any,
+    lens -any
+

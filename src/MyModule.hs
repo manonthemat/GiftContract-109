@@ -14,15 +14,13 @@
 
 module MyModule (endpoints, GiftSchema, MyRedeemer (..)) where
 
+import           Control.Lens         (view)
 import           Control.Monad        hiding (fmap)
 import           Data.Aeson           (FromJSON, ToJSON)
-import           Data.Map             as Map
+import qualified Data.Map             as Map
 import           Data.Text            (Text)
 import           Data.Void            (Void)
 import           GHC.Generics         (Generic)
-import           Plutus.Contract
-import qualified PlutusTx
-import           PlutusTx.Prelude     hiding (Semigroup(..), unless)
 import           Ledger               hiding (singleton)
 import           Ledger.Constraints   as Constraints
 import qualified Ledger.Typed.Scripts as Scripts
@@ -30,7 +28,11 @@ import           Ledger.Ada           as Ada
 import           Playground.Contract  (printJson, printSchemas, ensureKnownCurrencies, stage, ToSchema)
 import           Playground.TH        (mkKnownCurrencies, mkSchemaDefinitions)
 import           Playground.Types     (KnownCurrency (..))
-import           Prelude              (IO, Semigroup (..), String)
+import           Prelude              (IO, Semigroup (..), String, Show (..))
+import           Plutus.Contract
+import qualified PlutusTx
+import           PlutusTx.Prelude     hiding (Semigroup(..), unless)
+import           Plutus.V1.Ledger.Value (Value (..), assetClass, assetClassValueOf)
 import           Text.Printf          (printf)
 
 newtype MyRedeemer = MyRedeemer Bool
@@ -67,6 +69,7 @@ scrAddress = scriptAddress validator
 type GiftSchema =
             Endpoint "give" Integer
         .\/ Endpoint "grab" MyRedeemer
+        .\/ Endpoint "inspect" Integer
 
 give :: AsContractError e => Integer -> Contract w s e ()
 give amount = do
@@ -87,14 +90,25 @@ grab r = do
     void $ awaitTxConfirmed $ txId ledgerTx
     logInfo @String $ "collected gifts"
 
+inspect :: forall w s e. AsContractError e => Integer -> Contract w s e ()
+inspect _ = do
+    pk  <- ownPubKey
+    os  <- map snd . Map.toList <$> utxosAt (pubKeyAddress pk)
+    let totalVal = mconcat [view ciTxOutValue o | o <- os]
+    logInfo @String
+        $ "Logging total Value : " <> show totalVal
+    logInfo @String $ "Inspect complete"
+
 endpoints :: AsContractError e => Contract () GiftSchema Text e
 endpoints = do
     logInfo @String "Waiting for give or grab."
-    selectList [give', grab'] >> endpoints
+    selectList [give', grab', inspect'] >> endpoints
       where
         give' = endpoint @"give" give
         grab' = endpoint @"grab" grab
+        inspect' = endpoint @"inspect" inspect
 
 mkSchemaDefinitions ''GiftSchema
 
 mkKnownCurrencies []
+
